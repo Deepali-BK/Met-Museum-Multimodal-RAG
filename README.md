@@ -156,8 +156,8 @@ model_name="text-embedding-3-large"
 | Setting | Description |
 |---|---|
 | Results to return | Top-K shown (3–12) |
-| Candidates to retrieve | ChromaDB results passed to Claude (20–100) |
-| Enable vision ranking | Toggle Claude image analysis on/off |
+| Candidates to retrieve | ChromaDB results passed to OpenAI (20–100) |
+| Enable vision ranking | Toggle image analysis on/off |
 
 ---
 
