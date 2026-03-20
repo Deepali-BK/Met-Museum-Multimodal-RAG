@@ -23,11 +23,6 @@
 
 ## Architecture
 
-
----
-
-## Architecture
-
 ```
 User Prompt
 │
