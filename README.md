@@ -1,11 +1,11 @@
-# 🏛 Met Museum Multimodal RAG
+# 🏛 Met Museum Multimodal RAG (OpenAI API)
 
-> Semantic search across 470,000+ artworks from The Metropolitan Museum of Art using natural language — powered by **Claude vision**, **ChromaDB**, and the **Met Open Access API**.
+> Semantic search across 470,000+ artworks from The Metropolitan Museum of Art using natural language — powered by **OpenAI GPT (vision)**, **OpenAI embeddings**, **ChromaDB**, and the **Met Open Access API**.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.35+-red?style=flat-square&logo=streamlit)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-0.5+-green?style=flat-square)
-![Claude](https://img.shields.io/badge/Claude-Opus%204-purple?style=flat-square)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4.1-black?style=flat-square)
 ![License](https://img.shields.io/badge/Data-CC0%20Met%20Open%20Access-lightgrey?style=flat-square)
 
 ---
@@ -23,49 +23,60 @@
 
 ## Architecture
 
+
+---
+
+## Architecture
+
 ```
 User Prompt
-     │
-     ▼
+│
+▼
 ┌─────────────────────────────────┐
-│   1. ChromaDB Retrieval         │  sentence-transformers (all-MiniLM-L6-v2)
-│      Semantic similarity search │  ~5,000 artworks indexed locally
+│ 1. ChromaDB Retrieval │ OpenAI embeddings (text-embedding-3-large)
+│ Semantic similarity search │ ~5k–20k artworks indexed locally
 └──────────────┬──────────────────┘
-               │  top-N candidates (object IDs)
-               ▼
+│ top-N candidates
+▼
 ┌─────────────────────────────────┐
-│   2. Met API Fetch              │  live REST API · no key required
-│      Metadata + image URLs      │  collectionapi.metmuseum.org
+│ 2. Met API Fetch │ live REST API · no key required
+│ Metadata + image URLs │
 └──────────────┬──────────────────┘
-               │  enriched objects with images
-               ▼
+│
+▼
 ┌─────────────────────────────────┐
-│   3. Claude Re-ranking          │  multimodal: reads text + images
-│      Vision + text scoring      │  returns relevance score + explanation
+│ 3. GPT Re-ranking │ multimodal (text + images)
+│ Vision + reasoning │ returns score + explanation
 └──────────────┬──────────────────┘
-               │  top-K ranked results
-               ▼
+│
+▼
 ┌─────────────────────────────────┐
-│   4. Streamlit Gallery          │  live images · score pills
-│      Interactive display        │  detail expanders · Met links
+│ 4. Streamlit UI │ image gallery + explanations
 └─────────────────────────────────┘
 ```
 
-### Why this is a real RAG
+
+---
+
+## Why this is a real RAG system
 
 | RAG Component | Role | Technology |
 |---|---|---|
-| **Retrieval** | Semantic similarity search over indexed artworks | ChromaDB + `all-MiniLM-L6-v2` embeddings |
-| **Augmentation** | Live artwork metadata + images fetched per query | Met Museum Open Access API |
-| **Generation** | Re-ranking with scores + curatorial explanations | Claude (vision + text) |
+| **Retrieval** | Semantic search over artworks | ChromaDB + OpenAI embeddings |
+| **Augmentation** | Live metadata + images | Met Museum API |
+| **Generation** | Re-ranking + reasoning | OpenAI GPT (vision + text) |
 
-Traditional keyword search fails for prompts like *"melancholic women in Renaissance portraits"* — this pipeline understands semantic intent and visual content.
+Unlike keyword search, this understands prompts like:
+
+> *"melancholic women in Renaissance portraits"*
+
+and ranks results using **semantic + visual understanding**.
 
 ---
 
 ## Tech Stack
 
-`Python` · `Streamlit` · `Anthropic Claude API` · `Claude Vision` · `ChromaDB` · `sentence-transformers` · `HNSW vector indexing` · `RAG` · `Met Museum Open Access API` · `REST API` · `concurrent.futures` · `base64 image encoding` · `semantic search` · `all-MiniLM-L6-v2` · `LLM re-ranking` · `prompt engineering` · `Pillow` · `requests`
+`Python` · `Streamlit` · `OpenAI API` · `GPT-4.1 / GPT-4o` · `OpenAI Embeddings (text-embedding-3-large)` · `ChromaDB` · `RAG` · `Met Museum API` · `HNSW indexing` · `semantic search` · `multimodal reasoning` · `Pillow` · `requests`
 
 ---
 
@@ -79,15 +90,13 @@ met-museum-rag/
 ├── README.md
 ├── src/
 │   ├── met_api.py          # Met Museum API wrapper
-│   ├── embedder.py         # ChromaDB index builder + query
-│   └── ranker.py           # Claude re-ranker (vision + text)
+│   ├── embedder_OpenAI.py         # ChromaDB index builder + query
+│   └── ranker_OpenAI.py           # OpenaI re-ranker (vision + text)
 └── data/
     └── chroma_index/       # Persistent ChromaDB index (auto-created)
 ```
 
 ---
-
-## Quickstart
 
 ### 1. Clone and install
 
@@ -96,18 +105,22 @@ git clone https://github.com/yourusername/met-museum-rag
 cd met-museum-rag
 
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+source venv/bin/activate
 
 pip install -r requirements.txt
 ```
 
-### 2. Set your Anthropic API key
+### 2. Set your OpenAI API key
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...   # Windows: set ANTHROPIC_API_KEY=...
+export OPENAI_API_KEY=sk-....
+```
+Windows
+```bash
+set OPENAI_API_KEY=sk-...
 ```
 
-Get your key at [console.anthropic.com](https://console.anthropic.com).
+Get your key at [OpenAI]((https://platform.openai.com/api-keys)).
 
 ### 3. Build the vector index *(one-time, ~2–5 min)*
 
@@ -129,17 +142,18 @@ Opens at `http://localhost:8501`.
 
 ## Configuration
 
-### Model selection (`src/ranker.py`)
+### Model selection (`src/ranker_OpenAI.py`)
 
 ```python
-MODEL = "claude-opus-4-6"        # Best quality (~$0.05–0.15/search)
-MODEL = "claude-sonnet-4-20250514"  # 10x cheaper, still excellent
+MODEL = "gpt-4.1"
+MODEL = "gpt-4o"
+MODEL = "gpt-4o-mini"
 ```
 
-### Index size (`src/embedder.py`)
+### Index size (`src/embedder_OpenAI.py`)
 
 ```python
-TARGET_ARTWORKS = 5000    # Increase for broader coverage (more build time)
+model_name="text-embedding-3-large"
 ```
 
 ### Sidebar controls (runtime)
@@ -154,28 +168,26 @@ TARGET_ARTWORKS = 5000    # Increase for broader coverage (more build time)
 
 ## Cost
 
-| Component | Cost |
-|---|---|
-| Met Museum API | Free · no key · CC0 |
-| ChromaDB | Free · runs locally |
-| sentence-transformers | Free · runs locally |
-| Streamlit | Free · runs locally |
-| **Anthropic API** | ~$0.05–0.15/search (Opus + vision) |
-| **Anthropic API** | ~$0.001/search (Sonnet, vision off) |
-
-For development and demos, use Sonnet with vision toggled off — essentially free. Enable Opus + vision for showcasing the full multimodal pipeline.
+| Component         | Cost     |
+| ----------------- | -------- |
+| Met API           | Free     |
+| ChromaDB          | Free     |
+| Streamlit         | Free     |
+| OpenAI embeddings | very low |
+| GPT re-ranking    | low      |
 
 ---
 
 ## Troubleshooting
 
-| Error | Fix |
-|---|---|
-| `ModuleNotFoundError` | Activate venv and re-run `pip install -r requirements.txt` |
-| `ANTHROPIC_API_KEY not set` | Re-export the key — it resets when the terminal closes |
-| `chromadb` version conflict | `pip install chromadb==0.5.0` |
-| Port already in use | `streamlit run app.py --server.port 8502` |
-| No results returned | Try broader keywords; some departments are sparsely indexed |
+| Issue                        | Fix                                    |
+| ---------------------------- | -------------------------------------- |
+| `ModuleNotFoundError: src.*` | run from root or `export PYTHONPATH=.` |
+| `OPENAI_API_KEY not set`     | re-export key                          |
+| `NoneType not iterable`      | use `obj.get("tags") or []`            |
+| 403 errors (Met API)         | reduce concurrency + add delay         |
+| empty index                  | rebuild                                |
+
 
 ---
 
@@ -188,7 +200,6 @@ For development and demos, use Sonnet with vision toggled off — essentially fr
 - [ ] Conversational refinement (*"show me darker ones"*, *"only 15th century"*)
 - [ ] Deploy to Streamlit Cloud / HuggingFace Spaces
 - [ ] Evaluation framework: Precision@K and NDCG on a curated test set
-- [ ] Claude image descriptions baked into index at build time
 
 ---
 
